@@ -274,7 +274,8 @@ export default function configureStore(preloadedState) {
   const store = createStore(rootReducer, preloadedState, composedEnhancers)
 
   if (process.env.NODE_ENV !== 'production' && module.hot) {
-    module.hot.accept('./reducers', () => store.replaceReducer(rootReducer))
+    const newRootReducer = require('./rootReducer').default
+    module.hot.accept('./reducers', () => store.replaceReducer(newRootReducer))
   }
 
   return store
@@ -283,7 +284,9 @@ export default function configureStore(preloadedState) {
 
 The new code is wrapped in an `if` statement, so it only runs when our app is not in production mode, and only if the `module.hot` feature is available.
 
-Bundlers like Webpack and Parcel support a `module.hot.accept` method to specify which module should be hot reloaded, and what should happen when the module changes. In this case, we're watching the `./reducers` module, and passing the updated `rootReducer` to the `store.replaceReducer` method when it changes.
+Bundlers like Webpack and Parcel support a `module.hot.accept` method to specify which module should be hot reloaded, and what should happen when the module changes. In this case, we're watching the `./reducers` module, and upon changes to it, re-importing the the updated `rootReducer`, and passing it to the `store.replaceReducer` method when it changes.
+
+_(note: The require('./rootReducer').default looks a bit odd. That's because we're mixing CommonJS synchronous import syntax with ES modules, so the "default export" is in a object field called default. We could probably also have used import() and handled the reducer replacement asynchronously as well.)_
 
 We'll also use the same pattern in our `index.js` to hot reload any changes to our React components:
 
@@ -365,7 +368,8 @@ export default function configureAppStore(preloadedState) {
   })
 
   if (process.env.NODE_ENV !== 'production' && module.hot) {
-    module.hot.accept('./reducers', () => store.replaceReducer(rootReducer))
+    const newRootReducer = require('./rootReducer').default
+    module.hot.accept('./reducers', () => store.replaceReducer(newRootReducer))
   }
 
   return store
